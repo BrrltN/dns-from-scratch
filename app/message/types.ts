@@ -1,4 +1,4 @@
-import { OPERATION_CODE, RESPONSE_CODE, QUESTION_CLASS, QUESTION_TYPE } from "./const"
+import { OPERATION_CODE, RESPONSE_CODE, QUESTION_CLASS, QUESTION_TYPE } from "./constants"
 
 export type DNSMessageHeaderDecoded = {
     id: number,
@@ -23,4 +23,12 @@ export type DNSMessageQuestionDecoded = {
     labels: string[],
     type: QuestionAnswerType,
     class: QuestionAnswerClass,
+}
+
+export type DNSMessageAnswerDecoded = {
+    labels: string[],
+    type: QuestionAnswerType,
+    class: QuestionAnswerClass,
+    timeToLeave: number,
+    ipAddress: [number, number, number, number]
 }
