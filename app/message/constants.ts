@@ -3,6 +3,7 @@ export const OPERATION_CODE = {
     QUERY: 0,
     IQUERY: 1,
     STATUS: 2,
+    UNKNOWN: 3,
 } as const
 
 // https://www.rfc-editor.org/rfc/rfc1035#section-4.1.1

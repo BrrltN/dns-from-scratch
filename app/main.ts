@@ -11,18 +11,26 @@ udpSocket.bind(2053, "127.0.0.1")
 
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     try {
+        const decodedHeader = DNSMessageHeader.decode(data)
+
+        if (decodedHeader === null) {
+            return null
+        }
+
         const queryDomains = ["codecrafters.io"]
 
         const encodedHeader = DNSMessageHeader.encode({
-            id: 1234,
+            id: decodedHeader.id,
             isResponse: true,
-            operationCode: OPERATION_CODE.QUERY,
+            operationCode: decodedHeader.operationCode,
             isAuthoritativeAnswer: false,
             hasTrucation: false,
-            hasRecursionRequired: false,
+            hasRecursionRequired: decodedHeader.hasRecursionRequired,
             recursionIsAvailable: false,
             reservedZone: 0,
-            responseCode: RESPONSE_CODE.NO_ERROR,
+            responseCode: decodedHeader.operationCode === RESPONSE_CODE.NO_ERROR
+                ? RESPONSE_CODE.NO_ERROR
+                : RESPONSE_CODE.NOT_IMPLEMENTED,
             questionCount: queryDomains.length,
             answerRecordCount: queryDomains.length,
             authorityRecordCount: 0,
@@ -45,7 +53,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
 
         const response = Buffer.concat([encodedHeader, encodedQuestion, encodedAnswer])
 
-        udpSocket.send(response.toString(), remoteAddr.port, remoteAddr.address)
+        udpSocket.send(response, remoteAddr.port, remoteAddr.address)
     } catch (e) {
         console.log(`Error sending data: ${e}`)
     }
