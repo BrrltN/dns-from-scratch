@@ -16,8 +16,11 @@ export type DNSMessageHeaderDecoded = {
     additionalRecordCount: number,
 }
 
+export type QuestionAnswerType = typeof QUESTION_TYPE[keyof typeof QUESTION_TYPE]
+export type QuestionAnswerClass = typeof QUESTION_CLASS[keyof typeof QUESTION_CLASS]
+
 export type DNSMessageQuestionDecoded = {
     labels: string[],
-    type: typeof QUESTION_TYPE[keyof typeof QUESTION_TYPE],
-    class: typeof QUESTION_CLASS[keyof typeof QUESTION_CLASS],
+    type: QuestionAnswerType,
+    class: QuestionAnswerClass,
 }

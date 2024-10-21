@@ -1,26 +1,17 @@
 import type { DNSMessageQuestionDecoded } from "./types"
 
+import { getLabelSequenceBuffer, getTypeClassSequenceBuffer } from "./utils"
+
 export class DNSMessageQuestion {
     static encode(question: DNSMessageQuestionDecoded): Buffer {
-        const chunks = []
 
-        for (const questionName of question.labels) {
-            const domains = questionName.split(".")
-            for (const domain of domains) {
-                const domainBuffer = Buffer.from(domain)
-                chunks.push(Buffer.from([domainBuffer.byteLength]), domainBuffer)
-            }
-        }
+        const labelSequence = getLabelSequenceBuffer(question.labels)
+        const typeClassSequence = getTypeClassSequenceBuffer({
+            type: question.type,
+            class: question.class,
+        })
 
-        const content = Buffer.concat(chunks)
-
-        const questionFooter = Buffer.alloc(4)
-        questionFooter.writeInt16BE(question.type)
-        questionFooter.writeInt16BE(question.class, 2)
-
-        const endSection = new Uint8Array([0])
-
-        const questionSection = Buffer.concat([content, endSection, questionFooter])
+        const questionSection = Buffer.concat([labelSequence, typeClassSequence])
 
         return questionSection
     }
