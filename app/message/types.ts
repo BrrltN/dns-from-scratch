@@ -1,4 +1,4 @@
-import { OPERATION_CODE, RESPONSE_CODE, QUESTION_CLASS, QUESTION_TYPE } from "./constants"
+import { OPERATION_CODE, RESPONSE_CODE, QA_CLASS, QA_TYPE } from "./constants"
 
 export type OPERATION_CODE_VALUES = typeof OPERATION_CODE[keyof typeof OPERATION_CODE]
 export type RESPONSE_CODE_VALUES = typeof RESPONSE_CODE[keyof typeof RESPONSE_CODE]
@@ -19,16 +19,18 @@ export type DNSMessageHeaderDecoded = {
     additionalRecordCount: number,
 }
 
-export type QuestionAnswerType = typeof QUESTION_TYPE[keyof typeof QUESTION_TYPE]
-export type QuestionAnswerClass = typeof QUESTION_CLASS[keyof typeof QUESTION_CLASS]
+export type QAType = typeof QA_TYPE[keyof typeof QA_TYPE]
+export type QAClass = typeof QA_CLASS[keyof typeof QA_CLASS]
 
 export type DNSMessageQuestionDecoded = {
     label: string,
-    type: QuestionAnswerType,
-    class: QuestionAnswerClass,
+    type: QAType,
+    class: QAClass,
 }
 
+export type IpArray = [number, number, number, number]
+
 export type DNSMessageAnswerDecoded = DNSMessageQuestionDecoded & {
-    timeToLeave: number,
-    ipAddress: [number, number, number, number]
+    timeToLive: number,
+    ipAddress: IpArray
 }

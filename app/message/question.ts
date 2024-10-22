@@ -1,73 +1,10 @@
-import { QUESTION_CLASS, QUESTION_TYPE } from "./constants"
-import type { DNSMessageQuestionDecoded, QuestionAnswerType, QuestionAnswerClass } from "./types"
+import { QA_CLASS, QA_TYPE } from "./constants"
+import type { DNSMessageQuestionDecoded } from "./types"
 
-import { getLabelSequenceBuffer, getTypeClassSequenceBuffer } from "./utils"
+import { decodeLabels, getLabelSequenceBuffer, getTypeClassSequenceBuffer, isAvailableClass, isAvailableType } from "./utils"
 
 export class DNSMessageQuestion {
-    static #isAvailableQuestionType(questionType: number): questionType is QuestionAnswerType {
-        for (const questionTypeValue of Object.values(QUESTION_TYPE)) {
-            if (questionType === questionTypeValue) {
-                return true
-            }
-        }
-        return false
-    }
-
-    static #isAvailableQuestionClass(questionClass: number): questionClass is QuestionAnswerClass {
-        for (const questionClassValue of Object.values(QUESTION_CLASS)) {
-            if (questionClass === questionClassValue) {
-                return true
-            }
-        }
-        return false
-    }
-
-    static #decodeLabels(data: Buffer, startOffset: number): { name: string, endOffset: number } {
-        const labels: string[] = []
-
-        let offset = startOffset
-        let isPointerFollow = false
-
-        while (true) {
-
-            const currentByte = data[offset]
-
-            const isCompression = (currentByte & 0b1100_0000) !== 0
-            if (isCompression) {
-
-                isPointerFollow = true
-
-                const compressBytes = data.subarray(offset, offset + 2)
-                const compressBytesValue = compressBytes.readUInt16BE()
-                const offsetReference = compressBytesValue & 0b0011_1111_1111_1111
-
-                const result = this.#decodeLabels(data, offsetReference)
-                labels.push(result.name)
-                offset += 2
-                break
-            }
-
-            const isLabelEnd = currentByte === 0
-            if (isLabelEnd) {
-                offset++
-                break
-            }
-
-            const labelStartOffSet = offset + 1
-            const labelEndOffset = labelStartOffSet + currentByte
-
-            labels.push(
-                data.subarray(labelStartOffSet, labelEndOffset).toString()
-            )
-
-            offset = labelEndOffset
-        }
-
-        return { name: labels.join("."), endOffset: offset };
-    }
-
-
-    static decode(data: Buffer, headerQuestionCount: number): DNSMessageQuestionDecoded[] | null {
+    static decode(data: Buffer, headerQuestionCount: number): { questions: DNSMessageQuestionDecoded[], offsetEnd: number } | null {
         const HEADER_OFFSET = 12
         let currentOffset = HEADER_OFFSET
         let questionCounter = 0
@@ -75,7 +12,7 @@ export class DNSMessageQuestion {
         const labelSequences: DNSMessageQuestionDecoded[] = []
 
         while (questionCounter < headerQuestionCount) {
-            const { name, endOffset } = this.#decodeLabels(data, currentOffset)
+            const { name, endOffset } = decodeLabels(data, currentOffset)
 
             currentOffset = endOffset
 
@@ -89,8 +26,8 @@ export class DNSMessageQuestion {
 
             const sequence: DNSMessageQuestionDecoded = {
                 label: name,
-                type: this.#isAvailableQuestionType(questionType) ? questionType : QUESTION_TYPE.HOST_ADDRESS,
-                class: this.#isAvailableQuestionClass(questionClass) ? questionClass : QUESTION_CLASS.INTERNET,
+                type: isAvailableType(questionType) ? questionType : QA_TYPE.HOST_ADDRESS,
+                class: isAvailableClass(questionClass) ? questionClass : QA_CLASS.INTERNET,
             }
 
             labelSequences.push(sequence)
@@ -98,9 +35,8 @@ export class DNSMessageQuestion {
             questionCounter++
         }
 
-        return labelSequences
+        return { questions: labelSequences, offsetEnd: currentOffset }
     }
-
 
     static encode(questions: DNSMessageQuestionDecoded[]): Buffer {
 
