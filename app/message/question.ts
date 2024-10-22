@@ -12,6 +12,7 @@ export class DNSMessageQuestion {
         }
         return false
     }
+
     static #isAvailableQuestionClass(questionClass: number): questionClass is QuestionAnswerClass {
         for (const questionClassValue of Object.values(QUESTION_CLASS)) {
             if (questionClass === questionClassValue) {
@@ -21,80 +22,100 @@ export class DNSMessageQuestion {
         return false
     }
 
-    static decode(data: Buffer): DNSMessageQuestionDecoded | null {
-        const HEADER_OFFSET = 12
-        const questionSection = data.subarray(HEADER_OFFSET)
+    static #decodeLabels(data: Buffer, startOffset: number): { name: string, endOffset: number } {
+        const labels: string[] = []
 
-        const label = []
-        let questionByteSize = 0
+        let offset = startOffset
+        let isPointerFollow = false
 
-        const sequence: {
-            byteSize: number | null,
-            label: string[],
-            readOffset: number
-        } = { byteSize: null, label: [], readOffset: 0 }
+        while (true) {
 
-        for (const chunk of questionSection) {
-            questionByteSize++
+            const currentByte = data[offset]
 
-            if (sequence.byteSize === null) {
-                if (chunk === 0) {
-                    break
-                }
-                sequence.byteSize = chunk
-                continue
+            const isCompression = (currentByte & 0b1100_0000) !== 0
+            if (isCompression) {
+
+                isPointerFollow = true
+
+                const compressBytes = data.subarray(offset, offset + 2)
+                const compressBytesValue = compressBytes.readUInt16BE()
+                const offsetReference = compressBytesValue & 0b0011_1111_1111_1111
+
+                const result = this.#decodeLabels(data, offsetReference)
+                labels.push(result.name)
+                offset += 2
+                break
             }
 
-            sequence.readOffset++
-
-            sequence.label.push(String.fromCharCode(chunk))
-
-            if (sequence.readOffset === sequence.byteSize) {
-                label.push(sequence.label.join(""))
-
-                // Reset
-                sequence.byteSize = null
-                sequence.label = []
-                sequence.readOffset = 0
+            const isLabelEnd = currentByte === 0
+            if (isLabelEnd) {
+                offset++
+                break
             }
 
+            const labelStartOffSet = offset + 1
+            const labelEndOffset = labelStartOffSet + currentByte
+
+            labels.push(
+                data.subarray(labelStartOffSet, labelEndOffset).toString()
+            )
+
+            offset = labelEndOffset
         }
 
-        const questionTypeOffset = questionByteSize
-        const typeQuestionSection = questionSection.subarray(questionTypeOffset, questionTypeOffset + 2)
-        const questionType = typeQuestionSection.readUInt16BE()
-
-        const isAvailableType = this.#isAvailableQuestionType(questionType)
-        if (!isAvailableType) {
-            return null
-        }
-
-        questionByteSize += 2
-
-        const questionClassOffset = questionByteSize
-        const classQuestionSection = questionSection.subarray(questionClassOffset, questionClassOffset + 2)
-        const questionClass = classQuestionSection.readUInt16BE()
-        const isAvailableClass = this.#isAvailableQuestionClass(questionClass)
-        if (!isAvailableClass) {
-            return null
-        }
-
-        return {
-            label: label.join("."),
-            type: questionType,
-            class: questionClass,
-        }
+        return { name: labels.join("."), endOffset: offset };
     }
 
-    static encode(question: DNSMessageQuestionDecoded): Buffer {
 
-        const labelSequence = getLabelSequenceBuffer(question.label)
-        const typeClassSequence = getTypeClassSequenceBuffer({
-            type: question.type,
-            class: question.class,
-        })
+    static decode(data: Buffer, headerQuestionCount: number): DNSMessageQuestionDecoded[] | null {
+        const HEADER_OFFSET = 12
+        let currentOffset = HEADER_OFFSET
+        let questionCounter = 0
 
-        const questionSection = Buffer.concat([labelSequence, typeClassSequence])
+        const labelSequences: DNSMessageQuestionDecoded[] = []
+
+        while (questionCounter < headerQuestionCount) {
+            const { name, endOffset } = this.#decodeLabels(data, currentOffset)
+
+            currentOffset = endOffset
+
+            const typeQuestionSection = data.subarray(currentOffset, currentOffset + 2)
+            const questionType = typeQuestionSection.readUInt16BE()
+            currentOffset += 2
+
+            const classQuestionSection = data.subarray(currentOffset, currentOffset + 2)
+            const questionClass = classQuestionSection.readUInt16BE()
+            currentOffset += 2
+
+            const sequence: DNSMessageQuestionDecoded = {
+                label: name,
+                type: this.#isAvailableQuestionType(questionType) ? questionType : QUESTION_TYPE.HOST_ADDRESS,
+                class: this.#isAvailableQuestionClass(questionClass) ? questionClass : QUESTION_CLASS.INTERNET,
+            }
+
+            labelSequences.push(sequence)
+
+            questionCounter++
+        }
+
+        return labelSequences
+    }
+
+
+    static encode(questions: DNSMessageQuestionDecoded[]): Buffer {
+
+        const sections = []
+
+        for (const question of questions) {
+            const labelSequence = getLabelSequenceBuffer(question.label)
+            const typeClassSequence = getTypeClassSequenceBuffer({
+                type: question.type,
+                class: question.class,
+            })
+            sections.push(labelSequence, typeClassSequence)
+        }
+
+        const questionSection = Buffer.concat(sections)
 
         return questionSection
     }

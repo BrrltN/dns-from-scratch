@@ -16,8 +16,8 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
             return null
         }
 
-        const decodedQuestion = DNSMessageQuestion.decode(data)
-        if (decodedQuestion === null) {
+        const decodedQuestions = DNSMessageQuestion.decode(data, decodedHeader.questionCount)
+        if (decodedQuestions === null) {
             return null
         }
 
@@ -33,27 +33,19 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
             responseCode: decodedHeader.operationCode === RESPONSE_CODE.NO_ERROR
                 ? RESPONSE_CODE.NO_ERROR
                 : RESPONSE_CODE.NOT_IMPLEMENTED,
-            questionCount: 1,
-            answerRecordCount: 1,
+            questionCount: decodedHeader.questionCount,
+            answerRecordCount: decodedHeader.questionCount,
             authorityRecordCount: 0,
             additionalRecordCount: 0,
         })
 
-        const encodedQuestion = DNSMessageQuestion.encode({
-            label: decodedQuestion.label,
-            type: decodedQuestion.type,
-            class: decodedQuestion.class,
-        })
+        const encodedQuestions = DNSMessageQuestion.encode(decodedQuestions)
 
-        const encodedAnswer = DNSMessageAnswer.encode({
-            label: decodedQuestion.label,
-            type: decodedQuestion.type,
-            class: decodedQuestion.class,
-            timeToLeave: 60,
-            ipAddress: [8, 8, 8, 8],
-        })
+        const encodedAnswers = DNSMessageAnswer.encode(
+            decodedQuestions.map(dq => ({ ...dq, timeToLeave: 60, ipAddress: [8, 8, 8, 8] }))
+        )
 
-        const response = Buffer.concat([encodedHeader, encodedQuestion, encodedAnswer])
+        const response = Buffer.concat([encodedHeader, encodedQuestions, encodedAnswers])
 
         udpSocket.send(response, remoteAddr.port, remoteAddr.address)
     } catch (e) {
