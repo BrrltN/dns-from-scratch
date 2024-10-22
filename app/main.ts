@@ -1,5 +1,5 @@
 import * as dgram from "dgram"
-import { OPERATION_CODE, RESPONSE_CODE, QUESTION_CLASS, QUESTION_TYPE } from "./message/constants"
+import { RESPONSE_CODE } from "./message/constants"
 
 import { DNSMessageHeader } from "./message/header"
 import { DNSMessageQuestion } from "./message/question"
@@ -12,12 +12,14 @@ udpSocket.bind(2053, "127.0.0.1")
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     try {
         const decodedHeader = DNSMessageHeader.decode(data)
-
         if (decodedHeader === null) {
             return null
         }
 
-        const queryDomains = ["codecrafters.io"]
+        const decodedQuestion = DNSMessageQuestion.decode(data)
+        if (decodedQuestion === null) {
+            return null
+        }
 
         const encodedHeader = DNSMessageHeader.encode({
             id: decodedHeader.id,
@@ -31,22 +33,22 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
             responseCode: decodedHeader.operationCode === RESPONSE_CODE.NO_ERROR
                 ? RESPONSE_CODE.NO_ERROR
                 : RESPONSE_CODE.NOT_IMPLEMENTED,
-            questionCount: queryDomains.length,
-            answerRecordCount: queryDomains.length,
+            questionCount: 1,
+            answerRecordCount: 1,
             authorityRecordCount: 0,
             additionalRecordCount: 0,
         })
 
         const encodedQuestion = DNSMessageQuestion.encode({
-            labels: queryDomains,
-            type: QUESTION_TYPE.HOST_ADDRESS,
-            class: QUESTION_CLASS.INTERNET,
+            label: decodedQuestion.label,
+            type: decodedQuestion.type,
+            class: decodedQuestion.class,
         })
 
         const encodedAnswer = DNSMessageAnswer.encode({
-            labels: queryDomains,
-            type: QUESTION_TYPE.HOST_ADDRESS,
-            class: QUESTION_CLASS.INTERNET,
+            label: decodedQuestion.label,
+            type: decodedQuestion.type,
+            class: decodedQuestion.class,
             timeToLeave: 60,
             ipAddress: [8, 8, 8, 8],
         })

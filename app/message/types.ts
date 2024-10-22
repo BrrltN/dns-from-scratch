@@ -23,15 +23,12 @@ export type QuestionAnswerType = typeof QUESTION_TYPE[keyof typeof QUESTION_TYPE
 export type QuestionAnswerClass = typeof QUESTION_CLASS[keyof typeof QUESTION_CLASS]
 
 export type DNSMessageQuestionDecoded = {
-    labels: string[],
+    label: string,
     type: QuestionAnswerType,
     class: QuestionAnswerClass,
 }
 
-export type DNSMessageAnswerDecoded = {
-    labels: string[],
-    type: QuestionAnswerType,
-    class: QuestionAnswerClass,
+export type DNSMessageAnswerDecoded = DNSMessageQuestionDecoded & {
     timeToLeave: number,
     ipAddress: [number, number, number, number]
 }

@@ -1,15 +1,15 @@
 import type { QuestionAnswerType, QuestionAnswerClass } from "./types"
 
-export function getLabelSequenceBuffer(labels: string[]): Buffer {
+export function getLabelSequenceBuffer(label: string): Buffer {
     const chunks: (Buffer | Uint8Array)[] = []
 
-    for (const label of labels) {
-        const domains = label.split(".")
-        for (const domain of domains) {
-            const domainBuffer = Buffer.from(domain)
-            chunks.push(new Uint8Array([domainBuffer.byteLength]), domainBuffer)
-        }
+    const domains = label.split(".")
+
+    for (const domain of domains) {
+        const domainBuffer = Buffer.from(domain)
+        chunks.push(new Uint8Array([domainBuffer.byteLength]), domainBuffer)
     }
+
     const endSection = new Uint8Array([0])
     chunks.push(endSection)
 

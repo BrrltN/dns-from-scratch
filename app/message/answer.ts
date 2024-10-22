@@ -3,9 +3,10 @@ import type { DNSMessageAnswerDecoded } from "./types"
 import { getLabelSequenceBuffer, getTypeClassSequenceBuffer } from "./utils"
 
 export class DNSMessageAnswer {
+
     static encode(answer: DNSMessageAnswerDecoded): Buffer {
 
-        const labelSequence = getLabelSequenceBuffer(answer.labels)
+        const labelSequence = getLabelSequenceBuffer(answer.label)
         const typeClassSequence = getTypeClassSequenceBuffer({
             type: answer.type,
             class: answer.class,
