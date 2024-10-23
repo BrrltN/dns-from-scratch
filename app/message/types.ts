@@ -1,9 +1,9 @@
-import { OPERATION_CODE, RESPONSE_CODE, QA_CLASS, QA_TYPE } from "./constants"
+import { OPERATION_CODE, RESPONSE_CODE, DNS_CLASS, DNS_TYPE } from "./constants"
 
 export type OPERATION_CODE_VALUES = typeof OPERATION_CODE[keyof typeof OPERATION_CODE]
 export type RESPONSE_CODE_VALUES = typeof RESPONSE_CODE[keyof typeof RESPONSE_CODE]
 
-export type DNSMessageHeaderDecoded = {
+export type Header = {
     id: number,
     isResponse: boolean,
     operationCode: OPERATION_CODE_VALUES,
@@ -11,7 +11,7 @@ export type DNSMessageHeaderDecoded = {
     hasTrucation: boolean,
     hasRecursionRequired: boolean,
     recursionIsAvailable: boolean,
-    reservedZone: 0,
+    reservedZone: number,
     responseCode: RESPONSE_CODE_VALUES,
     questionCount: number,
     answerRecordCount: number,
@@ -19,18 +19,18 @@ export type DNSMessageHeaderDecoded = {
     additionalRecordCount: number,
 }
 
-export type QAType = typeof QA_TYPE[keyof typeof QA_TYPE]
-export type QAClass = typeof QA_CLASS[keyof typeof QA_CLASS]
+export type DNSType = typeof DNS_TYPE[keyof typeof DNS_TYPE]
+export type DNSClass = typeof DNS_CLASS[keyof typeof DNS_CLASS]
 
-export type DNSMessageQuestionDecoded = {
+export type Question = {
     label: string,
-    type: QAType,
-    class: QAClass,
+    type: DNSType,
+    class: DNSClass,
 }
 
 export type IpArray = [number, number, number, number]
 
-export type DNSMessageAnswerDecoded = DNSMessageQuestionDecoded & {
+export type Answer = Question & {
     timeToLive: number,
     ipAddress: IpArray
 }

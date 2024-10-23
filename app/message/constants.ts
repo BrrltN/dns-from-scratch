@@ -17,7 +17,7 @@ export const RESPONSE_CODE = {
 } as const
 
 // https://www.rfc-editor.org/rfc/rfc1035#section-3.2.2
-export const QA_TYPE = {
+export const DNS_TYPE = {
     HOST_ADDRESS: 1,
     AUTHORITATIVE_NAME_SERVER: 2,
     MAIL_DESTINATION: 3, // deprecated
@@ -37,7 +37,7 @@ export const QA_TYPE = {
 } as const
 
 // https://www.rfc-editor.org/rfc/rfc1035#section-3.2.4
-export const QA_CLASS = {
+export const DNS_CLASS = {
     INTERNET: 1,
     CSNET: 2,
     CHOAS: 3,
